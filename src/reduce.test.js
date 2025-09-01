@@ -360,7 +360,8 @@ describe('reduce function', () => {
       .toBe('This is: This is: null..');
   });
 
-  it(`shouldn't throw error when non-all/no arguments are/is included `, () => {
+  it(`shouldn't throw error when non-all arguments are included `
+      + 'or no argument are included', () => {
     const array1 = [1, 5, 4];
     const array2 = [5, 3, 2];
     const array3 = [2, 2.5];
