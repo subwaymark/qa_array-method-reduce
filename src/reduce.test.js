@@ -339,6 +339,38 @@ describe('reduce function', () => {
       .toBe(0);
   });
 
+  it(`should return single value when `
+      + `array length = 0 and 'startValue' is included or `
+      + `array length = 1 and 'startValue isn't included'`, () => {
+    const results = [
+      [6].reduce2(adding),
+      [].reduce2(subtracting, 13),
+      [24].reduce2(multiplication),
+      [].reduce2(average, 91),
+    ];
+    const expected = [6, 13, 24, 91];
+
+    results.forEach((result, i) => {
+      expect(result)
+        .toBe(expected[i]);
+    });
+  });
+
+  it(`should throw TypeError when array is empty `
+      + `and 'startValue' argument isn't included `, () => {
+    const arrays = [
+      [],
+      [],
+      [],
+    ];
+
+    arrays.forEach((array, i) => {
+      expect(() => {
+        array.reduce2(adding);
+      }).toThrow(TypeError);
+    });
+  });
+
   it(`should work with diffrent types of prmitive data `, () => {
     const value = [
       ['This ', 'is ', 5],
@@ -386,5 +418,215 @@ describe('reduce function', () => {
       array3.reduce2(nothingSpecial, 2);
       array4.reduce2(nothingSpecial2);
     }).not.toThrowError();
+  });
+
+  it(`should throw TypeError when 'callback' argument `
+      + 'is not a function', () => {
+    const arrays = [
+      [1, 5, 4],
+      [5, 3, 2],
+      [2, 2.5],
+      [0, 30, 0],
+      [8, 43, 3],
+    ];
+    const nonFunction = [
+      undefined,
+      [],
+      {},
+      null,
+      78,
+    ];
+
+    arrays.forEach((array, i) => {
+      expect(() => {
+        array.reduce2(nonFunction[i]);
+      }).toThrow(TypeError);
+    });
+  });
+
+  describe('(Sparse array)', () => {
+    it('should skips non-existent indices '
+      + 'e.g [5, , , 5, 4]', () => {
+      const arrays = [
+        /* eslint-disable max-len */
+        /* eslint-disable no-sparse-arrays, standard/array-bracket-even-spacing, max-len */
+        [, , 2, 17],
+        [1, 1, , 4],
+        [4, 5, 3, 1, , , , ],
+        /* eslint-enable no-sparse-arrays, standard/array-bracket-even-spacing, max-len */
+        /* eslint-enable max-len */
+      ];
+      const expected = [
+        [3],
+        [1, 3],
+        [1, 2, 3],
+      ];
+
+      arrays.forEach((array, arrayIndex) => {
+        array.reduce2(callbacks[arrayIndex]);
+
+        const listOfArguments = callbacks[arrayIndex].mock.calls;
+
+        for (let i = 0; i < listOfArguments.length; i++) {
+          const index = listOfArguments[i][2];
+
+          expect(index)
+            .toBe(expected[arrayIndex][i]);
+        }
+      });
+    }
+    );
+  });
+
+  describe('(Array-like object)', () => {
+    it(`should work with array like object `, () => {
+      const artificialObject = { 'reduce2': reduce };
+
+      const array1 = Object.create(artificialObject, {
+        0: {
+          value: 1, enumerable: true,
+        },
+        1: {
+          value: 5, enumerable: true,
+        },
+        2: {
+          value: 4, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const array2 = Object.create(artificialObject, {
+        0: {
+          value: 5, enumerable: true,
+        },
+        1: {
+          value: 3, enumerable: true,
+        },
+        2: {
+          value: 2, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const array3 = Object.create(artificialObject, {
+        0: {
+          value: 2, enumerable: true,
+        },
+        1: {
+          value: 2.5, enumerable: true,
+        },
+        length: {
+          value: 2,
+        },
+      });
+      const array4 = Object.create(artificialObject, {
+        0: {
+          value: 0, enumerable: true,
+        },
+        1: {
+          value: 30, enumerable: true,
+        },
+        2: {
+          value: 0, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const results = [
+        array1.reduce2(adding, 0),
+        array2.reduce2(subtracting, 20),
+        array3.reduce2(multiplication, 2),
+        array4.reduce2(average, 20),
+      ];
+
+      const expected = [10, 10, 10, 10];
+
+      for (let i = 0; i < 4; i++) {
+        const value = results[i];
+
+        expect(value)
+          .toBe(expected[i]);
+      }
+    });
+
+    it(`should handle only that elements of array which fulfill condition `
+      + `|handledElements| = 'length' value`, () => {
+      const artificialObject = { 'reduce2': reduce };
+
+      const array1 = Object.create(artificialObject, {
+        0: {
+          value: 1, enumerable: true,
+        },
+        1: {
+          value: 5, enumerable: true,
+        },
+        2: {
+          value: 4, enumerable: true,
+        },
+        3: {
+          value: 100, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const array2 = Object.create(artificialObject, {
+        0: {
+          value: 5, enumerable: true,
+        },
+        1: {
+          value: 3, enumerable: true,
+        },
+        2: {
+          value: 2, enumerable: true,
+        },
+        3: {
+          value: 200, enumerable: true,
+        },
+        4: {
+          value: 0, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const array3 = Object.create(artificialObject, {
+        4: {
+          value: 2, enumerable: true,
+        },
+        7: {
+          value: 2.5, enumerable: true,
+        },
+        17: {
+          value: 5, enumerable: true,
+        },
+        length: {
+          value: 2,
+        },
+      });
+      const array4 = Object.create(artificialObject, {
+        3: {
+          value: 0, enumerable: true,
+        },
+        0: {
+          value: 30, enumerable: true,
+        },
+        2: {
+          value: 1, enumerable: true,
+        },
+        1: {
+          value: 9, enumerable: true,
+        },
+        length: { value: 3 },
+      });
+      const results = [
+        array1.reduce2(adding, 0),
+        array2.reduce2(subtracting, 20),
+        array3.reduce2(multiplication, 2),
+        array4.reduce2(average, 20),
+      ];
+
+      const expected = [10, 10, 10, 9];
+
+      for (let i = 0; i < 4; i++) {
+        const value = results[i];
+
+        expect(value)
+          .toBe(expected[i]);
+      }
+    });
   });
 });
