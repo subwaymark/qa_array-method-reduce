@@ -582,8 +582,8 @@ describe('reduce function', () => {
         addingElement2,
       ];
       const expected = [
-        [[6, 4]],
-        [[11, 5]],
+        [6, 4],
+        [11, 5],
       ];
 
       arrays.forEach((array, arrayIndex) => {
@@ -591,8 +591,6 @@ describe('reduce function', () => {
 
         const listOfArr = addingCallbacks[arrayIndex].mock.calls;
         const listLength = listOfArr.length;
-
-        expect(listLength).toBe('Ł');
 
         for (let i = 0; i < listLength; i++) {
           const prev = listOfArr[i][0];
@@ -616,7 +614,7 @@ describe('reduce function', () => {
     }
     );
 
-    it.only(`should process modified element if `
+    it(`should process modified element if `
         + `it is edited during iteration before processing `, () => {
       const arrays = [
         [6, 4, 5, 7],
@@ -819,6 +817,73 @@ describe('reduce function', () => {
         expect(value)
           .toBe(expected[i]);
       }
+    });
+  });
+
+  describe('(General comparassion with native function)', () => {
+    it(`should behave the same as native "reduce" function `, () => {
+      const array1 = [1, 5, 4];
+      const array2 = [5, 3, 2];
+      const array3 = [2, 2.5];
+      const array4 = [0, 30, 0];
+      const expected = [[], [], [], []];
+
+      array1.reduce((total, currentValue, currentIndex, arr) => {
+        expected[0].push([total, currentValue, currentIndex, arr]);
+
+        return total + currentValue;
+      });
+
+      array2.reduce((total, currentValue, currentIndex, arr) => {
+        expected[1].push([total, currentValue, currentIndex, arr]);
+
+        return total - currentValue;
+      }, 20);
+
+      array3.reduce((total, currentValue, currentIndex, arr) => {
+        expected[2].push([total, currentValue, currentIndex, arr]);
+
+        return total * currentValue;
+      }, 2);
+
+      array4.reduce((total, currentValue, currentIndex, arr) => {
+        expected[3].push([total, currentValue, currentIndex, arr]);
+
+        return (total + currentValue) / 2;
+      });
+
+      array1.reduce2(adding);
+      array2.reduce2(subtracting, 20);
+      array3.reduce2(multiplication, 2);
+      array4.reduce2(average);
+
+      const listOfArguments = [
+        adding.mock.calls,
+        subtracting.mock.calls,
+        multiplication.mock.calls,
+        average.mock.calls,
+      ];
+
+      listOfArguments.forEach((argList, operationIndex) => {
+        argList.forEach((call, callIndex) => {
+          const total = call[0];
+          const value = call[1];
+          const indexValue = call[2];
+          const callbackArray = call[3];
+
+          expect(total)
+            .toBe(expected[operationIndex][callIndex][0]);
+
+          expect(value)
+            .toBe(expected[operationIndex][callIndex][1]);
+
+          expect(indexValue)
+            .toBe(expected[operationIndex][callIndex][2]);
+
+          expect(callbackArray)
+            .toEqual(expected[operationIndex][callIndex][3]);
+        });
+      });
     });
   });
 });

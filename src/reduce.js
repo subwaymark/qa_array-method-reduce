@@ -45,15 +45,19 @@ function reduce(callback, startValue) {
     }
   }
 
+  const copyOfThisArr = Object.assign([], copyOfThis);
+
   for (let i = start; i < len; i++) {
-    if (!(i in copyOfThis)) {
+    if (!isArrayLike) {
+      if (!(i in copyOfThisArr)) {
+        continue;
+      }
+
+      prev = callback(prev, copyOfThisArr[i], i, copyOfThisArr);
       continue;
     }
 
-    if (!isArrayLike) {
-      const copyOfThisArr = Object.assign([], copyOfThis);
-
-      prev = callback(prev, copyOfThis[i], i, copyOfThisArr);
+    if (!(i in copyOfThis)) {
       continue;
     }
 
