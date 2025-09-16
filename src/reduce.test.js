@@ -211,16 +211,21 @@ describe('reduce function', () => {
   });
 
   it(`should invoke callback function `
-      + `with 'arr' argument === this `, () => {
+      + `with 'arr' argument = copy of this `, () => {
     const array1 = [1, 5, 4];
     const array2 = [5, 3, 2];
     const array3 = [2, 2.5];
     const array4 = [0, 30, 0];
+    const thisSpy = jest.fn(function() {
+      expect(this)
+        .toBeUndefined();
+    });
 
     array1.reduce2(adding, 8);
     array2.reduce2(subtracting, 20);
     array3.reduce2(multiplication, 2);
     array4.reduce2(average);
+    [3, 5, 6].reduce2(thisSpy, 4);
 
     const listOfArguments = [
       adding.mock.calls,
@@ -241,7 +246,7 @@ describe('reduce function', () => {
         const currentVal = call[3];
 
         expect(currentVal)
-          .toBe(expected[operationIndex][callIndex]);
+          .toEqual(expected[operationIndex][callIndex]);
       });
     });
   });
@@ -348,11 +353,30 @@ describe('reduce function', () => {
       [24].reduce2(multiplication),
       [].reduce2(average, 91),
     ];
+
     const expected = [6, 13, 24, 91];
 
     results.forEach((result, i) => {
+      expect(callbacks[i])
+        .not.toHaveBeenCalled();
+
       expect(result)
         .toBe(expected[i]);
+    });
+  });
+
+  it(`should invoke callback excatly one time when `
+      + `array length = 1 and 'startValue' is included`, () => {
+    const results = [
+      [6].reduce2(adding, 3),
+      [2].reduce2(subtracting, 13),
+      [24].reduce2(multiplication, 4),
+      [17].reduce2(average, 91),
+    ];
+
+    results.forEach((result, i) => {
+      expect(callbacks[i])
+        .toHaveBeenCalledTimes(1);
     });
   });
 
@@ -472,6 +496,174 @@ describe('reduce function', () => {
 
           expect(index)
             .toBe(expected[arrayIndex][i]);
+        }
+      });
+    }
+    );
+
+    it(`shouldn't process the new elements of array if `
+      + 'they are appended in function run-time', () => {
+      const arrays = [
+        [6, 4, 5, 7],
+        [11, 5, 6],
+      ];
+
+      const addingElement1 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 2) {
+            arr[4] = 15;
+            arr[6] = 7;
+          }
+
+          return total + currentValue;
+        });
+      const addingElement2 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 1) {
+            arr[5] = 18;
+          }
+
+          return total - currentValue;
+        });
+      const addingCallbacks = [
+        addingElement1,
+        addingElement2,
+      ];
+      const expected = [
+        [[6, 4], [10, 5], [15, 7]],
+        [[11, 5], [6, 6]],
+      ];
+
+      arrays.forEach((array, arrayIndex) => {
+        array.reduce2(addingCallbacks[arrayIndex]);
+
+        const listOfArr = addingCallbacks[arrayIndex].mock.calls;
+
+        for (let i = 0; i < listOfArr.length; i++) {
+          const prev = listOfArr[i][0];
+          const value = listOfArr[i][1];
+
+          expect(prev)
+            .toBe(expected[arrayIndex][i][0]);
+
+          expect(value)
+            .toBe(expected[arrayIndex][i][1]);
+        }
+      });
+    }
+    );
+
+    it(`shouldn't process element if `
+        + `it is deleted during iteration before processing `, () => {
+      const arrays = [
+        [6, 4, 5, 7],
+        [11, 5, 6],
+      ];
+
+      const addingElement1 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 1) {
+            delete arr[2];
+            delete arr[3];
+          }
+
+          return total + currentValue;
+        });
+      const addingElement2 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 1) {
+            delete arr[2];
+          }
+
+          return total - currentValue;
+        });
+      const addingCallbacks = [
+        addingElement1,
+        addingElement2,
+      ];
+      const expected = [
+        [[6, 4]],
+        [[11, 5]],
+      ];
+
+      arrays.forEach((array, arrayIndex) => {
+        array.reduce2(addingCallbacks[arrayIndex]);
+
+        const listOfArr = addingCallbacks[arrayIndex].mock.calls;
+        const listLength = listOfArr.length;
+
+        expect(listLength).toBe('Ł');
+
+        for (let i = 0; i < listLength; i++) {
+          const prev = listOfArr[i][0];
+          const value = listOfArr[i][1];
+
+          if (listLength === 1) {
+            expect(prev)
+              .toBe(expected[arrayIndex][0]);
+
+            expect(value)
+              .toBe(expected[arrayIndex][1]);
+          } else {
+            expect(prev)
+              .toBe(expected[arrayIndex][i][0]);
+
+            expect(value)
+              .toBe(expected[arrayIndex][i][1]);
+          }
+        }
+      });
+    }
+    );
+
+    it.only(`should process modified element if `
+        + `it is edited during iteration before processing `, () => {
+      const arrays = [
+        [6, 4, 5, 7],
+        [11, 5, 6],
+      ];
+
+      const addingElement1 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 1) {
+            arr[2] = 1;
+            arr[3] = 0;
+          }
+
+          return total + currentValue;
+        });
+      const addingElement2 = jest.fn(
+        (total, currentValue, currentIndex, arr) => {
+          if (currentIndex === 1) {
+            arr[2] = 2;
+          }
+
+          return total - currentValue;
+        });
+      const addingCallbacks = [
+        addingElement1,
+        addingElement2,
+      ];
+      const expected = [
+        [[6, 4], [10, 1], [11, 0]],
+        [[11, 5], [6, 2]],
+      ];
+
+      arrays.forEach((array, arrayIndex) => {
+        array.reduce2(addingCallbacks[arrayIndex]);
+
+        const listOfArr = addingCallbacks[arrayIndex].mock.calls;
+        const listLength = listOfArr.length;
+
+        for (let i = 0; i < listLength; i++) {
+          const prev = listOfArr[i][0];
+          const value = listOfArr[i][1];
+
+          expect(prev)
+            .toBe(expected[arrayIndex][i][0]);
+
+          expect(value)
+            .toBe(expected[arrayIndex][i][1]);
         }
       });
     }
@@ -619,7 +811,7 @@ describe('reduce function', () => {
         array4.reduce2(average, 20),
       ];
 
-      const expected = [10, 10, 10, 9];
+      const expected = [10, 10, 2, 9];
 
       for (let i = 0; i < 4; i++) {
         const value = results[i];

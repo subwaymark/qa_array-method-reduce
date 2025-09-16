@@ -7,35 +7,57 @@
  * @returns {*}
  */
 function reduce(callback, startValue) {
-  const isArrayLike = !Array.isArray(this);
-  const keys = isArrayLike
-    ? Object.keys(this).slice(0, this.length)
-    : Object.keys(this);
-  const doThrowError = this.length < 1 && startValue === undefined;
-  let prev = startValue;
-  let i2 = 0;
-  let valueIndex = +keys[i2];
-
-  if (doThrowError) {
-    throw new TypeError(`Array doesn't have any element`);
+  if (typeof callback !== 'function') {
+    throw new TypeError('Callback is not a function');
   }
 
-  if (arguments.length < 2) {
-    i2 = 1;
-    valueIndex = +keys[i2]; // Pierwszy nie-pusty element
-    prev = this[keys[0]];
+  const copyOfThis = { ...this };
+  const isArrayLike = this instanceof Object
+    && this.hasOwnProperty('length')
+    && typeof this.length === 'number'
+    && !Array.isArray(this);
 
-    for (let i = 0; i < keys.length - 1; i++, i2++) {
-      prev = callback(prev, this[valueIndex], valueIndex, this);
-      valueIndex = +keys[i2 + 1];
+  Object.defineProperty(copyOfThis, 'length', {
+    value: this.length,
+    enumerable: false,
+  });
+
+  const len = copyOfThis.length >>> 0;
+  const hasStartValue = arguments.length >= 2;
+
+  if (len < 1 && !hasStartValue) {
+    // eslint-disable-next-line max-len
+    throw new TypeError(`Array is empty and doesn't have 'startValue' argument`);
+  }
+
+  let prev = startValue;
+  let start = 0;
+
+  if (!hasStartValue) {
+    for (let i = 0; i < len; i++) {
+      if (i in copyOfThis) {
+        prev = copyOfThis[i];
+        start = i + 1;
+        break;
+      } else if (i === len) {
+        throw new TypeError(`Index hasn't been founded`);
+      }
+    }
+  }
+
+  for (let i = start; i < len; i++) {
+    if (!(i in copyOfThis)) {
+      continue;
     }
 
-    return prev;
-  }
+    if (!isArrayLike) {
+      const copyOfThisArr = Object.assign([], copyOfThis);
 
-  for (let i = 0; i < keys.length; i++, i2++) {
-    prev = callback(prev, this[valueIndex], valueIndex, this);
-    valueIndex = +keys[i2 + 1];
+      prev = callback(prev, copyOfThis[i], i, copyOfThisArr);
+      continue;
+    }
+
+    prev = callback(prev, copyOfThis[i], i, copyOfThis);
   }
 
   return prev;
